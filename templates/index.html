@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formato de Devolución de Productos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+        
+        <!-- ENCABEZADO PRINCIPAL -->
+        <div class="bg-slate-800 text-white p-6 border-b border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-wide">FORMATO DE DEVOLUCIÓN DE PRODUCTOS</h1>
+                <p class="text-slate-400 text-sm mt-1">Registro y seguimiento de devoluciones multi-sucursal</p>
+            </div>
+            <a href="/descargar-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow flex items-center gap-2">
+                <span>📥</span> Descargar Excel
+            </a>
+        </div>
+
+        <form id="formDevolucion" action="/guardar" method="POST" class="p-6 space-y-8">
+
+            <!-- BLOQUE 1: DATOS DEL CLIENTE Y GENERALES -->
+            <section class="space-y-4">
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span>📋</span> Datos de la Solicitud y Cliente
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Folio de Devolución</label>
+                        <input type="text" name="folio_devolucion" placeholder="Auto-generado o Folio" class="w-full border rounded-md p-2 text-sm bg-slate-50 focus:bg-white border-slate-300" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
+                        <input type="date" name="fecha" class="w-full border rounded-md p-2 text-sm bg-slate-50 focus:bg-white border-slate-300" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">No. Factura / Pedido</label>
+                        <input type="text" name="factura_pedido" placeholder="Ej. F-98231" class="w-full border rounded-md p-2 text-sm bg-slate-50 focus:bg-white border-slate-300" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Cliente</label>
+                        <input type="text" name="nombre_cliente" class="w-full border rounded-md p-2 text-sm bg-slate-50 focus:bg-white border-slate-300" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Empresa (si aplica)</label>
+                        <input type="text" name="empresa" class="w-full border rounded-md p-2 text-sm bg-slate-50 focus:bg-white border-slate-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Teléfono</label>
+                        <input type="tel" name="telefono" class="w-full border rounded-md p-2 text-sm bg-slate-50 focus:bg-white border-slate-300">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Correo Electrónico</label>
+                        <input type="email" name="correo" class="w-full border rounded-md p-2 text-sm bg-slate-50 focus:bg-white border-slate-300">
+                    </div>
+                </div>
+            </section>
+
+            <!-- BLOQUE 2: TABLA DE PRODUCTOS (PARTIDAS DINÁMICAS) -->
+            <section class="space-y-4">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                        <span>📦</span> Datos del Producto
+                    </h2>
+                    <button type="button" onclick="agregarPartida()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-md transition flex items-center gap-1">
+                        ➕ Agregar Producto
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto border rounded-lg border-slate-200">
+                    <table class="w-full text-left text-sm" id="tablaProductos">
+                        <thead class="bg-slate-100 text-slate-700 font-semibold text-xs border-b">
+                            <tr>
+                                <th class="p-2 border-r">Código</th>
+                                <th class="p-2 border-r min-w-[200px]">Descripción</th>
+                                <th class="p-2 border-r">Clasificación</th>
+                                <th class="p-2 border-r w-20">Cant. Comp.</th>
+                                <th class="p-2 border-r w-20">Cant. Dev.</th>
+                                <th class="p-2 border-r w-28">Precio Unit.</th>
+                                <th class="p-2 border-r w-28">Total</th>
+                                <th class="p-2 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoProductos" class="divide-y divide-slate-200">
+                            <!-- Fila inicial por defecto -->
+                            <tr>
+                                <td class="p-2"><input type="text" name="prod_codigo[]" class="w-full border rounded p-1 text-xs" required></td>
+                                <td class="p-2"><input type="text" name="prod_descripcion[]" class="w-full border rounded p-1 text-xs" required></td>
+                                <td class="p-2"><input type="text" name="prod_clasificacion[]" class="w-full border rounded p-1 text-xs"></td>
+                                <td class="p-2"><input type="number" name="prod_cant_comprada[]" min="1" class="w-full border rounded p-1 text-xs text-center" required></td>
+                                <td class="p-2"><input type="number" name="prod_cant_devuelta[]" min="1" class="w-full border rounded p-1 text-xs text-center" required></td>
+                                <td class="p-2"><input type="number" step="0.01" name="prod_precio[]" oninput="calcularTotalFila(this)" class="w-full border rounded p-1 text-xs text-right" required></td>
+                                <td class="p-2"><input type="number" step="0.01" name="prod_total[]" class="w-full border rounded p-1 text-xs text-right bg-slate-100" readonly></td>
+                                <td class="p-2 text-center"><button type="button" onclick="eliminarFila(this)" class="text-red-500 hover:text-red-700 font-bold">✕</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- BLOQUE 3: MOTIVO DE LA DEVOLUCIÓN -->
+            <section class="space-y-4">
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span>⚠️</span> Motivo de la Devolución
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-700">
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="Producto defectuoso o dañado" required> Producto defectuoso o dañado</label>
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="Producto dañado durante el transporte"> Producto dañado durante el transporte</label>
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="Error en el surtido del pedido"> Error en el surtido del pedido</label>
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="Producto incorrecto"> Producto incorrecto</label>
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="Cambio de opinión del cliente / Compra Duplicada"> Cambio de opinión / Compra Duplicada</label>
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="No cumplió las expectativas"> No cumplió las expectativas</label>
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="Unidad de medida incorrecta"> Unidad de medida incorrecta</label>
+                    <label class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-slate-50"><input type="radio" name="motivo" value="Entrega tardía"> Entrega tardía</label>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Descripción y/o observaciones detalladas</label>
+                    <textarea name="motivo_observaciones" rows="2" class="w-full border rounded-md p-2 text-sm border-slate-300" placeholder="Escriba los detalles adicionales sobre el motivo..."></textarea>
+                </div>
+            </section>
+
+            <!-- BLOQUE 4: INSPECCIÓN DE ALMACÉN -->
+            <section class="space-y-4">
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span>🏭</span> Almacén - Inspección del Producto
+                </h2>
+                <div class="border rounded-lg overflow-hidden border-slate-200">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-700 font-semibold text-xs border-b">
+                            <tr>
+                                <th class="p-2 border-r">Concepto</th>
+                                <th class="p-2 border-r w-16 text-center">Sí</th>
+                                <th class="p-2 border-r w-16 text-center">No</th>
+                                <th class="p-2">Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-xs">
+                            <tr>
+                                <td class="p-2 font-medium border-r">Producto completo</td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_completo" value="Sí" required></td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_completo" value="No"></td>
+                                <td class="p-2"><input type="text" name="obs_completo" class="w-full border rounded p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium border-r">Empaque original</td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_empaque" value="Sí" required></td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_empaque" value="No"></td>
+                                <td class="p-2"><input type="text" name="obs_empaque" class="w-full border rounded p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium border-r">Accesorios incluidos</td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_accesorios" value="Sí" required></td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_accesorios" value="No"></td>
+                                <td class="p-2"><input type="text" name="obs_accesorios" class="w-full border rounded p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium border-r">Evidencia de daño</td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_dano" value="Sí" required></td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_dano" value="No"></td>
+                                <td class="p-2"><input type="text" name="obs_dano" class="w-full border rounded p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium border-r">Producto en garantía</td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_garantia" value="Sí" required></td>
+                                <td class="p-2 text-center border-r"><input type="radio" name="insp_garantia" value="No"></td>
+                                <td class="p-2"><input type="text" name="obs_garantia" class="w-full border rounded p-1"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- BLOQUE 5: RESOLUCIÓN (VENTAS / COMPRAS) -->
+            <section class="space-y-4">
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span>💼</span> Ventas / Compras - Resolución
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-slate-700">
+                    <label class="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer"><input type="radio" name="resolucion" value="Cambio de producto" required> Cambio de producto</label>
+                    <label class="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer"><input type="radio" name="resolucion" value="Reparación"> Reparación</label>
+                    <label class="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer"><input type="radio" name="resolucion" value="Nota de crédito"> Nota de crédito</label>
+                    <label class="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer"><input type="radio" name="resolucion" value="Reembolso"> Reembolso</label>
+                    <label class="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer"><input type="radio" name="resolucion" value="Devolución rechazada"> Devolución rechazada</label>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones de la resolución</label>
+                    <textarea name="resolucion_observaciones" rows="2" class="w-full border rounded-md p-2 text-sm border-slate-300"></textarea>
+                </div>
+            </section>
+
+            <!-- BLOQUE 6: AUTORIZACIONES Y CONTROL INTERNO -->
+            <section class="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span>🔒</span> Control Interno y Cierre
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Costo de la Devolución ($)</label>
+                        <input type="number" step="0.01" name="costo_devolucion" placeholder="0.00" class="w-full border rounded-md p-2 text-sm bg-white border-slate-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Área Responsable</label>
+                        <input type="text" name="area_responsable" placeholder="Ej. Logística / Almacén" class="w-full border rounded-md p-2 text-sm bg-white border-slate-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha de Cierre</label>
+                        <input type="date" name="fecha_cierre" class="w-full border rounded-md p-2 text-sm bg-white border-slate-300">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Acción Correctiva Aplicada</label>
+                        <textarea name="accion_correctiva" rows="2" class="w-full border rounded-md p-2 text-sm bg-white border-slate-300" placeholder="Medidas preventivas o correctivas..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BOTÓN FINAL DE ENVÍO -->
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-md flex items-center justify-center gap-2">
+                <span>💾</span> REGISTRAR DEVOLUCIÓN COMPLETA
+            </button>
+
+        </form>
+    </div>
+
+    <!-- JAVASCRIPT: LÓGICA DE TABLA Y ENVÍO AL SERVIDOR -->
+    <script>
+        function agregarPartida() {
+            const cuerpo = document.getElementById('cuerpoProductos');
+            const nuevaFila = document.createElement('tr');
+            nuevaFila.innerHTML = `
+                <td class="p-2"><input type="text" name="prod_codigo[]" class="w-full border rounded p-1 text-xs" required></td>
+                <td class="p-2"><input type="text" name="prod_descripcion[]" class="w-full border rounded p-1 text-xs" required></td>
+                <td class="p-2"><input type="text" name="prod_clasificacion[]" class="w-full border rounded p-1 text-xs"></td>
+                <td class="p-2"><input type="number" name="prod_cant_comprada[]" min="1" class="w-full border rounded p-1 text-xs text-center" required></td>
+                <td class="p-2"><input type="number" name="prod_cant_devuelta[]" min="1" class="w-full border rounded p-1 text-xs text-center" required></td>
+                <td class="p-2"><input type="number" step="0.01" name="prod_precio[]" oninput="calcularTotalFila(this)" class="w-full border rounded p-1 text-xs text-right" required></td>
+                <td class="p-2"><input type="number" step="0.01" name="prod_total[]" class="w-full border rounded p-1 text-xs text-right bg-slate-100" readonly></td>
+                <td class="p-2 text-center"><button type="button" onclick="eliminarFila(this)" class="text-red-500 hover:text-red-700 font-bold">✕</button></td>
+            `;
+            cuerpo.appendChild(nuevaFila);
+        }
+
+        function eliminarFila(btn) {
+            const cuerpo = document.getElementById('cuerpoProductos');
+            if (cuerpo.rows.length > 1) {
+                btn.closest('tr').remove();
+            } else {
+                alert("La devolución debe incluir al menos un producto.");
+            }
+        }
+
+        function calcularTotalFila(inputPrecio) {
+            const fila = inputPrecio.closest('tr');
+            const cantDevuelta = parseFloat(fila.querySelector('[name="prod_cant_devuelta[]"]').value) || 0;
+            const precio = parseFloat(inputPrecio.value) || 0;
+            const totalInput = fila.querySelector('[name="prod_total[]"]');
+            totalInput.value = (cantDevuelta * precio).toFixed(2);
+        }
+
+        // Envío asíncrono hacia app.py
+        document.getElementById('formDevolucion').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/guardar', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const res = await response.json();
+                if(res.status === 'ok') {
+                    alert(res.mensaje);
+                    this.reset();
+                } else {
+                    alert('Error al guardar: ' + res.mensaje);
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
